@@ -1,0 +1,791 @@
+/* Mökin vedet v2 — "Metsä"
+   ---------------------------------------------------------------------------
+   One theme, no switcher. Grew out of the user testing on v1: the five findings
+   it answers are noted against the rules that answer them.
+
+   The shape of the system: a coloured page ground with white cards floating on
+   it (from the Neobrutalismi round), softened — 2px borders instead of 3px, a
+   10px radius instead of none, and one muted accent instead of the alarm red.
+
+   Everything tunable lives in :root. Change a token here and it moves
+   everywhere it is used; the components below only reference tokens.
+   ------------------------------------------------------------------------- */
+
+:root {
+  /* --- surfaces ------------------------------------------------------- */
+  --ground: #f3fbe7;        /* the page itself; cards float on this */
+  --card: #ffffff;          /* task cards, tool box, modal, home cards */
+  --appbar: #ffffff;        /* the top bar */
+  --done-bg: #e7f7cf;       /* a completed step recedes into a tint */
+  --locked-bg: #e7f7cf;     /* so does a step you have not reached */
+  --alert-bg: #fefed8;      /* Huomio */
+
+  /* --- ink ------------------------------------------------------------
+     `ink` is structure — every border, every drop shadow, the progress fill,
+     the bar across a photo. `text` is what you read, and currently follows it.
+     To pull them apart again, give `--text` its own hex. */
+  --ink: #0f111e;
+  --text: var(--ink);
+
+  /* `muted` is the locked step's title and number; `locked-line` is the dashed
+     border around that card. Same story — one value, two names. */
+  --muted: #4a5a36;
+  --locked-line: var(--muted);
+
+  /* The padlock is filled, so at --muted it would out-weigh the text beside it.
+     Lighter green, still a legible mark. #6d8a52 is the lightest that clears
+     3:1 against the locked card; below that it stops reading. */
+  --lock: #5f7d46;
+
+  /* --- accent ---------------------------------------------------------
+     `accent` is a FILL and always carries dark text on top, so a bright value
+     is the safe direction. `accent-ink` is the darker sibling for small
+     uppercase labels, which need more contrast than a fill does. They do not
+     follow each other — check both if you retint. */
+  --accent: #dfe1ff;
+  --accent-ink: #467a26;
+
+  --overlay: rgba(10, 11, 20, 0.85);
+
+  /* --- type -----------------------------------------------------------
+     Finding 4: v1 was 15–16px and testers wanted bigger. Body is 17px and the
+     phase heading 25px, up from 18px. Line-heights are unitless so they scale
+     with the sizes. */
+  --font-head: "Space Grotesk", "Manrope", Helvetica, Arial, sans-serif;
+  --font-body: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  --heading-size: 25px;
+  --heading-weight: 600;
+  --title-size: 19px;         /* task card titles */
+  --title-weight: 600;
+  --title-weight-current: 600;
+  --body-size: 17px;
+  --label-size: 14px;         /* VAIHE 1, OHJEET, TYÖKALUT, the Huomio tab */
+  --btn-size: 19px;
+  --btn-weight: 600;
+
+  /* --- shape ----------------------------------------------------------- */
+  --radius: 10px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+  --border: 2px;
+  --shadow-offset: 3px;
+
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+}
+
+* { box-sizing: border-box; }
+
+html,
+body { margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--ground);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent-ink); }
+a:hover { color: var(--text); }
+
+/* Visually hidden but still announced. Carries the Valmis / Kesken status that
+   used to be printed on the card — see the tag rules below. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+#app {
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--ground);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- App bar ---------- */
+
+.app-bar {
+  position: relative;
+  height: 64px;
+  flex: 0 0 auto;
+  background: var(--appbar);
+  border-bottom: var(--border) solid var(--ink);
+}
+
+.app-bar__title {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 56px;
+  font-family: var(--font-head);
+  font-size: var(--heading-size);
+  font-weight: var(--heading-weight);
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-btn {
+  position: absolute;
+  top: 10px;
+  left: 8px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.icon-btn:hover { background: var(--ground); }
+.icon-btn[hidden] { display: none; }
+
+/* ---------- Views ---------- */
+
+main {
+  flex: 1 1 auto;
+  padding: var(--space-16);
+}
+
+main[hidden] { display: none; }
+
+#home-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-bottom: var(--space-24);
+}
+
+#home-view[hidden] { display: none; }
+
+/* ---------- Home — process cards ---------- */
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.card-project {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  width: 100%;
+  min-height: 60px;
+  padding: var(--space-12) var(--space-12) var(--space-12) var(--space-16);
+  background: var(--card);
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
+  font-family: var(--font-head);
+  font-size: var(--title-size);
+  font-weight: var(--title-weight);
+  line-height: 1.3;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.04s ease, box-shadow 0.04s ease;
+}
+
+.card-project:active {
+  transform: translate(var(--shadow-offset), var(--shadow-offset));
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.card-project .icon {
+  flex: 0 0 auto;
+  color: var(--text);
+}
+
+.card-project__title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.card-project__count {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  font-family: var(--font-body);
+  font-size: var(--label-size);
+  font-weight: 800;
+  color: var(--text);
+}
+
+.card-project__count.is-complete { background: var(--accent); }
+
+/* ---------- Home — contact box ---------- */
+
+.contact-box {
+  display: flex;
+  gap: var(--space-12);
+  margin-top: auto;
+  padding: var(--space-16);
+  background: var(--card);
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+}
+
+.contact-box .icon {
+  flex: 0 0 auto;
+  color: var(--accent-ink);
+}
+
+.contact-box__title {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-head);
+  font-size: var(--body-size);
+  font-weight: var(--title-weight);
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.contact-box__text {
+  margin: 0;
+  font-size: var(--body-size);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+/* ---------- Project view ---------- */
+
+#project-view { padding-bottom: var(--space-40); }
+
+/* Sticky, and full-bleed to the app edges so scrolling cards pass behind it. */
+.progress {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0 calc(-1 * var(--space-16)) var(--space-24);
+  padding: var(--space-12) var(--space-16);
+  background: var(--ground);
+  border-bottom: var(--border) solid var(--ink);
+}
+
+.progress__count {
+  flex: 0 0 auto;
+  min-width: 54px;
+  padding: 5px 10px;
+  text-align: center;
+  font-size: var(--label-size);
+  font-weight: 700;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--text);
+}
+
+.progress__track {
+  flex: 1 1 auto;
+  height: 14px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  overflow: hidden;
+}
+
+.progress__fill {
+  height: 100%;
+  width: 0;
+  background: var(--ink);
+  transition: width 0.2s ease;
+}
+
+.page-description {
+  margin: 0 0 var(--space-24);
+  font-size: var(--body-size);
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.page-tools {
+  margin: 0 0 var(--space-24);
+  padding: 13px 15px;
+  background: var(--card);
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+}
+
+.page-tools__label {
+  margin: 0 0 6px;
+  font-size: var(--label-size);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.page-tools__row {
+  margin: 0 0 var(--space-2);
+  font-size: var(--body-size);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+/* Finding 2: v1's hierarchy was too flat. The phase heading is 25px against
+   16px body, sitting on a heavy rule, so a phase reads as a real division. */
+.step-group { margin-bottom: var(--space-24); }
+
+.step-group__header {
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-8);
+  margin-bottom: var(--space-16);
+  border-bottom: var(--border) solid var(--ink);
+}
+
+.step-group__label {
+  margin: 0 0 var(--space-4);
+  font-size: var(--label-size);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.step-group__name {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--heading-size);
+  line-height: 1.24;
+  font-weight: var(--heading-weight);
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* ---------- Task cards ----------
+   Three states. The current step is the only white card with a drop shadow, so
+   the eye lands on it first; done and locked both recede into the same tint and
+   are told apart by their border, their badge and whether the body is open. */
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card-task {
+  background: var(--card);
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
+  overflow: visible;
+}
+
+.card-task.is-current {
+  border-width: 2.5px;
+  box-shadow: 5px 5px 0 var(--accent);
+}
+
+.card-task.is-done {
+  background: var(--done-bg);
+  box-shadow: none;
+}
+
+.card-task.is-locked {
+  background: var(--locked-bg);
+  border-style: dashed;
+  border-color: var(--locked-line);
+  box-shadow: none;
+}
+
+/* Muted with explicit colours, never opacity — opacity drops text below 4.5:1. */
+.card-task.is-locked .card-task__title,
+.card-task.is-locked .card-task__tag,
+.card-task.is-locked .task-badge { color: var(--muted); }
+
+.card-task.is-locked .task-badge {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--locked-line);
+}
+
+/* Head = badge + title row. A `button` on done steps (tap to rewind). */
+.card-task__head {
+  display: flex;
+  gap: var(--space-12);
+  align-items: flex-start;
+  width: 100%;
+  padding: 16px var(--space-16);
+  background: transparent;
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+button.card-task__head { cursor: pointer; }
+
+.task-badge {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.task-badge svg { width: 20px; height: 20px; display: block; }
+.task-badge .check-icon { display: none; }
+
+.card-task.is-current .task-badge,
+.card-task.is-done .task-badge {
+  background: var(--accent);
+  color: var(--text);
+}
+
+.card-task.is-done .task-badge__num { display: none; }
+.card-task.is-done .task-badge .check-icon { display: block; }
+
+.card-task__titlerow {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  min-height: 34px;
+}
+
+.card-task__title {
+  font-family: var(--font-head);
+  font-size: var(--title-size);
+  line-height: 1.4;
+  font-weight: var(--title-weight);
+  color: var(--text);
+}
+
+.card-task.is-current .card-task__title { font-weight: var(--title-weight-current); }
+
+/* Finding: the words Valmis / Kesken were noise once the badge and the open
+   body already carried the state, so they are hidden (`.sr-only` in the markup)
+   and only the locked step shows a mark — a padlock. */
+.card-task__tag {
+  flex: 0 0 auto;
+  font-size: var(--label-size);
+  font-weight: var(--title-weight);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Only the locked tag carries an svg, so this reaches nothing else. */
+.card-task__tag svg { width: 28px; height: 28px; display: block; color: var(--lock);
+  margin-top: 2px; }
+
+/* The padlock sits in the top right, level with the number badge. The row is
+   centred by default, so the locked card opts out. Matters most when a long
+   title wraps to two lines. */
+.card-task.is-locked .card-task__tag { align-self: flex-start; }
+
+/* Body: indented under the title, shown for done + current steps. */
+.card-task__body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 0 var(--space-16) 18px var(--space-16);
+}
+
+.card-task__section-label {
+  margin: 0 0 var(--space-4);
+  font-size: var(--label-size);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.card-task__section-text {
+  margin: 0;
+  font-size: var(--body-size);
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-line;
+}
+
+/* ---------- Attachments ----------
+   Finding 1: testers did not realise the photos opened. Each thumbnail now
+   carries a bar reading AVAA. It is a CSS pseudo-element, so the markup stays
+   as it is and the button keeps its own "Avaa kuva N" label for screen readers. */
+
+.attachments-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.attachment-thumb {
+  position: relative;
+  width: 94px;
+  height: 94px;
+  padding: 0;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.attachment-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.attachment-thumb::after {
+  content: "Avaa";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 6px 0;
+  background: var(--ink);
+  color: var(--card);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* ---------- Huomio ----------
+   Finding 3: v1's alarm red read as an error. This is a plain note with its
+   label riding the top border as a tab — visible without shouting. The warning
+   glyph is redundant next to the tab, so it is hidden rather than removed. */
+
+.alert-box {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 24px 14px 14px;
+  background: var(--alert-bg);
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
+.alert-box .icon { display: none; }
+
+/* Same size and weight as the VAIHE 1 label — both follow --label-size. */
+.alert-box__title {
+  position: absolute;
+  top: -13px;
+  left: 12px;
+  margin: 0;
+  padding: 3px 10px;
+  background: var(--accent-ink);
+  color: #ffffff;
+  border: var(--border) solid var(--ink);
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: var(--label-size);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+
+.alert-box__text {
+  margin: 0;
+  font-size: var(--body-size);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+/* ---------- Step controls ---------- */
+
+.step-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin-top: var(--space-4);
+}
+
+.btn-complete {
+  flex: 1 1 auto;
+  width: 100%;
+  padding: var(--space-16);
+  background: var(--accent);
+  color: var(--text);
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
+  font-family: var(--font-head);
+  font-size: var(--btn-size);
+  font-weight: var(--btn-weight);
+  cursor: pointer;
+  transition: transform 0.04s ease, box-shadow 0.04s ease;
+}
+
+.btn-complete:active {
+  transform: translate(var(--shadow-offset), var(--shadow-offset));
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* ---------- Lightbox ---------- */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay);
+  z-index: 100;
+}
+
+.lightbox[hidden] { display: none; }
+
+.lightbox img {
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* ---------- Completion modal ----------
+   Finding 5: the icon-only button was not understood. It now says what it does,
+   and the line above says what closing means — the process resets to the start. */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-24);
+  background: var(--overlay);
+}
+
+.modal[hidden] { display: none; }
+
+.modal__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-16);
+  width: 100%;
+  max-width: 360px;
+  padding: 28px 22px;
+  background: var(--card);
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 6px 6px 0 var(--accent);
+}
+
+.modal__badge {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--locked-bg);
+  color: var(--text);
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+}
+
+.modal__badge svg { width: 30px; height: 30px; display: block; }
+
+.modal__text {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--heading-size);
+  line-height: 1.3;
+  font-weight: var(--heading-weight);
+  letter-spacing: -0.01em;
+  text-align: center;
+  color: var(--text);
+}
+
+.modal__note {
+  margin: 0;
+  font-size: var(--body-size);
+  line-height: 1.45;
+  text-align: center;
+  color: var(--text);
+}
+
+.modal__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: var(--space-16);
+  background: var(--accent);
+  color: var(--text);
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
+  font-family: var(--font-head);
+  font-size: var(--btn-size);
+  font-weight: var(--btn-weight);
+  cursor: pointer;
+  transition: transform 0.04s ease, box-shadow 0.04s ease;
+}
+
+.modal__btn:active {
+  transform: translate(var(--shadow-offset), var(--shadow-offset));
+  box-shadow: 0 0 0 var(--ink);
+}

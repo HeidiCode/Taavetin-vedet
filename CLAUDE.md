@@ -54,6 +54,54 @@ list scrolls. Structure is shared HTML/JS in `index.html`; each theme styles it
 `.step-actions`, `.btn-complete`, `.modal*`, `.is-done`/`.is-current`/`.is-locked`).
 There is **no manual accordion** — body visibility follows status.
 
+## v2 — `v2/` (branch `v2-metsa`)
+
+A second version of the app living in its own folder, so the v1 link keeps
+working unchanged. GitHub Pages serves `main` at the repo root, so once merged
+v2 is reachable at `https://heidicode.github.io/Mokin-vedet/v2/` while
+`https://heidicode.github.io/Mokin-vedet/` stays exactly as it is.
+
+| Path | What it is |
+|---|---|
+| `v2/index.html` | Same app, single theme, no switcher |
+| `v2/themes/metsa.css` | The whole v2 look. All tunables are tokens in `:root` |
+
+- **Images are shared, not copied** — `v2/index.html` references `../images/`.
+  Add a photo once, at the repo root, and both versions see it.
+- **One theme, no switcher.** The switcher markup, its styles and its script are
+  gone from `v2/index.html`; the reduced-motion guard stays.
+
+### What v2 changes, and why
+
+Grew out of user testing on v1. Five findings, and the answer to each:
+
+1. *Photos did not look openable* — each thumbnail carries an **AVAA** bar,
+   drawn with `.attachment-thumb::after`, so the markup is unchanged and the
+   button keeps its `aria-label="Avaa kuva N"`.
+2. *Minimalismi's hierarchy was too flat* — phase heading 25px (was 18px), card
+   titles 18px/600 (was 16px/normal).
+3. *Neobrutalismi's red read as errors* — the alarm red is gone. One muted
+   accent, and Huomio is a plain note whose label rides the top border as a tab.
+4. *Type was too small* — body 17px with unitless line-heights, so it scales.
+5. *The modal's icon button was not understood* — it now reads
+   "Selvä, sulje ohje", with a line above saying the ohje returns to the start.
+   That was always the behaviour; it just was not stated.
+
+Two knock-on markup changes in `v2/index.html`: the **Valmis / Kesken** words are
+`.sr-only` (the badge and the open body already carry the state, but screen
+readers still need it), and a **locked** step shows a padlock (`icons.lock`)
+instead of the word "Lukittu".
+
+### Accessibility
+
+Same WCAG 2.1 AA target as v1, and the same trap: never dim with `opacity`.
+Colour pairs were checked against the tokens — every text pair passes, the
+weakest being the small uppercase labels on the Valmis card at 4.6:1. The locked
+card's dashed border is the one boundary that has to stay above 3:1, since it is
+the only thing outlining that card. **Re-run axe-core against `v2/` after any
+retint** — the token-level check does not cover focus order, names or the
+lightbox.
+
 ## Themes (CSS Zen Garden model)
 
 Same HTML, swappable stylesheet. The fixed switcher at the bottom rewrites the
