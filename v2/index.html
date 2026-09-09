@@ -52,7 +52,8 @@
   </main>
 </div>
 
-<div class="lightbox" id="lightbox" hidden>
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true"
+     aria-label="Kuva suurennettuna" hidden>
   <button class="lightbox-close" id="lightbox-close" aria-label="Sulje"></button>
   <img id="lightbox-img" src="" alt="">
 </div>
@@ -649,16 +650,23 @@ function showProject(id) {
   window.scrollTo(0, 0);
 }
 
+/* What was focused when the lightbox opened, so closing can hand focus back
+   to the thumbnail instead of dropping it at the top of the document. */
+let lightboxOpener = null;
+
 function openLightbox(src) {
   lightboxImg.src = src;
   lightboxImg.alt = ALT[src] || "";
   lightbox.hidden = false;
+  lightboxOpener = document.activeElement;
+  lightboxClose.focus();
 }
 
 function closeLightbox() {
   lightbox.hidden = true;
   lightboxImg.src = "";
   lightboxImg.alt = "";
+  if (lightboxOpener) { lightboxOpener.focus(); lightboxOpener = null; }
 }
 
 /* ---------- Events ---------- */
@@ -693,6 +701,12 @@ document.addEventListener("keydown", (e) => {
   if (!completeModal.hidden && e.key === "Tab") {
     e.preventDefault();
     completeClose.focus();
+    return;
+  }
+  // Same for the lightbox — its close button is the only control inside it.
+  if (!lightbox.hidden && e.key === "Tab") {
+    e.preventDefault();
+    lightboxClose.focus();
     return;
   }
   if (e.key !== "Escape") return;
