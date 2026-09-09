@@ -134,8 +134,11 @@ that way — the easy regressions:
   ≥4.5:1). Re-check if you retint.
 - **Photos:** each thumbnail button has a numbered `aria-label` ("Avaa kuva N") and
   its image an alt from the `ALT` map — add an `ALT` entry with every new image.
-- **Modal:** `openCompleteModal` moves focus to the close button and traps Tab
-  there; `closeCompleteModal` returns focus to the step list. Preserve if you touch it.
+- **Overlays:** `openCompleteModal` moves focus to the close button and traps Tab
+  there; `closeCompleteModal` returns focus to the step list. The lightbox does the
+  same — `openLightbox` remembers what opened it (`lightboxOpener`), focuses the
+  close button, and `closeLightbox` hands focus back to that thumbnail. Both carry
+  `role="dialog"` + `aria-modal`. Preserve if you touch them.
 - **Motion:** transitions and the JS smooth-scroll honour `prefers-reduced-motion`
   (media query in the `<head>` + `matchMedia` guard in `scrollToCurrent`).
 - **Structure:** `<html lang="fi">`, page title is the `<h1>`, group labels are
