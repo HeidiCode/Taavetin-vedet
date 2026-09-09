@@ -27,10 +27,15 @@
   --ink: #0f111e;
   --text: var(--ink);
 
-  /* `muted` is the locked step's title, number and padlock; `locked-line` is
-     the dashed border around that card. Same story — one value, two names. */
+  /* `muted` is the locked step's title and number; `locked-line` is the dashed
+     border around that card. Same story — one value, two names. */
   --muted: #4a5a36;
   --locked-line: var(--muted);
+
+  /* The padlock is filled, so at --muted it would out-weigh the text beside it.
+     Lighter green, still a legible mark. #6d8a52 is the lightest that clears
+     3:1 against the locked card; below that it stops reading. */
+  --lock: #5f7d46;
 
   /* --- accent ---------------------------------------------------------
      `accent` is a FILL and always carries dark text on top, so a bright value
@@ -504,7 +509,8 @@ button.card-task__head { cursor: pointer; }
   color: var(--muted);
 }
 
-.card-task__tag svg { width: 28px; height: 28px; display: block; }
+/* Only the locked tag carries an svg, so this reaches nothing else. */
+.card-task__tag svg { width: 28px; height: 28px; display: block; color: var(--lock); }
 
 /* Body: indented under the title, shown for done + current steps. */
 .card-task__body {
