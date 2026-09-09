@@ -21,14 +21,16 @@
   --alert-bg: #fefed8;      /* Huomio */
 
   /* --- ink ------------------------------------------------------------
-     Two separate tokens on purpose. `ink` is structure — every border, every
-     drop shadow, the progress fill, the bar across a photo. `text` is what you
-     read. They start from near-black; lightening `ink` alone softens the whole
-     frame without touching legibility. */
+     `ink` is structure — every border, every drop shadow, the progress fill,
+     the bar across a photo. `text` is what you read, and currently follows it.
+     To pull them apart again, give `--text` its own hex. */
   --ink: #0f111e;
-  --text: #0f111e;
-  --muted: #4a5a36;         /* locked step's title, number and padlock */
-  --locked-line: #4a5a36;   /* the dashed border of a locked card */
+  --text: var(--ink);
+
+  /* `muted` is the locked step's title, number and padlock; `locked-line` is
+     the dashed border around that card. Same story — one value, two names. */
+  --muted: #4a5a36;
+  --locked-line: var(--muted);
 
   /* --- accent ---------------------------------------------------------
      `accent` is a FILL and always carries dark text on top, so a bright value
@@ -132,7 +134,7 @@ a:hover { color: var(--text); }
   margin: 0;
   padding: 0 56px;
   font-family: var(--font-head);
-  font-size: 25px;
+  font-size: var(--heading-size);
   font-weight: var(--heading-weight);
   letter-spacing: -0.01em;
   color: var(--text);
@@ -764,7 +766,7 @@ button.card-task__head { cursor: pointer; }
   border: var(--border) solid var(--ink);
   border-radius: var(--radius);
   box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
-  font-family: var(--font-body);
+  font-family: var(--font-head);
   font-size: var(--btn-size);
   font-weight: var(--btn-weight);
   cursor: pointer;
