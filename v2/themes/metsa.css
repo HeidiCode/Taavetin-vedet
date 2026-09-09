@@ -512,6 +512,11 @@ button.card-task__head { cursor: pointer; }
 /* Only the locked tag carries an svg, so this reaches nothing else. */
 .card-task__tag svg { width: 28px; height: 28px; display: block; color: var(--lock); }
 
+/* The padlock sits in the opposite corner from the number badge: badge top
+   left, padlock bottom right. The row is centred by default, so the locked
+   card opts out. Matters most when a long title wraps to two lines. */
+.card-task.is-locked .card-task__tag { align-self: flex-end; }
+
 /* Body: indented under the title, shown for done + current steps. */
 .card-task__body {
   display: flex;
