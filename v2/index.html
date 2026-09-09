@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mökin vedet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&family=Space+Grotesk:wght@400..700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="themes/metsa.css">
+
+<style>
+  /* Respect the OS "reduce motion" setting: drop transitions/animations and
+     smooth scrolling (the JS smooth-scroll is guarded separately). */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="app-bar">
+    <button class="icon-btn" id="back-btn" aria-label="Takaisin" hidden></button>
+    <h1 class="app-bar__title" id="page-title">Mökin vedet</h1>
+  </header>
+
+  <main id="home-view">
+    <div class="card-list" id="process-list"></div>
+    <div class="contact-box">
+      <svg class="icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 18C12.1217 18 14.1566 17.1571 15.6569 15.6569C17.1571 14.1566 18 12.1217 18 10C18 7.87827 17.1571 5.84344 15.6569 4.34315C14.1566 2.84285 12.1217 2 10 2C7.87827 2 5.84344 2.84285 4.34315 4.34315C2.84285 5.84344 2 7.87827 2 10C2 12.1217 2.84285 14.1566 4.34315 15.6569C5.84344 17.1571 7.87827 18 10 18ZM9 7C9 6.73478 9.10536 6.48043 9.29289 6.29289C9.48043 6.10536 9.73478 6 10 6C10.2652 6 10.5196 6.10536 10.7071 6.29289C10.8946 6.48043 11 6.73478 11 7C11 7.26522 10.8946 7.51957 10.7071 7.70711C10.5196 7.89464 10.2652 8 10 8C9.73478 8 9.48043 7.89464 9.29289 7.70711C9.10536 7.51957 9 7.26522 9 7ZM8.75 9H10.25C10.6656 9 11 9.33437 11 9.75V12.5H11.25C11.6656 12.5 12 12.8344 12 13.25C12 13.6656 11.6656 14 11.25 14H8.75C8.33437 14 8 13.6656 8 13.25C8 12.8344 8.33437 12.5 8.75 12.5H9.5V10.5H8.75C8.33437 10.5 8 10.1656 8 9.75C8 9.33437 8.33437 9 8.75 9Z" fill="currentColor"/></svg>
+      <div>
+        <p class="contact-box__title">Tarvitsetko apua?</p>
+        <p class="contact-box__text">Soita Mikko Mallikas: 050 1234567</p>
+      </div>
+    </div>
+  </main>
+
+  <main id="project-view" hidden>
+    <div class="progress" id="progress">
+      <span class="progress__count" id="progress-count">0/0</span>
+      <div class="progress__track"><div class="progress__fill" id="progress-fill"></div></div>
+    </div>
+    <p class="page-description" id="project-description"></p>
+    <div class="page-tools" id="project-tools"></div>
+    <div id="step-groups"></div>
+  </main>
+</div>
+
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lightbox-close" id="lightbox-close" aria-label="Sulje"></button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<div class="modal" id="complete-modal" hidden>
+  <div class="modal__box" role="dialog" aria-modal="true" aria-labelledby="complete-modal-text">
+    <span class="modal__badge" id="complete-modal-badge"></span>
+    <p class="modal__text" id="complete-modal-text">Kaikki vaiheet valmiit</p>
+    <p class="modal__note">Ohje palaa alkuun, kun suljet sen.</p>
+    <button class="modal__btn" id="complete-close" type="button">Selvä, sulje ohje</button>
+  </div>
+</div>
+
+
+<script>
+/* ---------- Icons ---------- */
+
+/* Icons exported from Figma via node.exportAsync({format:'SVG_STRING'}).
+   Filled paths with fill="currentColor" (CSS `color` drives the tint).
+   The caret/back icons are native 42px components with padding baked in for
+   button touch-targets; here the whole row is the touch target, so they are
+   cropped to viewBox "9 9 24 24" to match the visual weight of the 20px icons. */
+const icons = {
+  chevronDown: '<svg class="icon" width="20" height="20" viewBox="9 9 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20.0587 25.5816C20.5793 26.1395 21.4248 26.1395 21.9455 25.5816L28.6095 18.4403C29.1302 17.8824 29.1302 16.9763 28.6095 16.4184C28.0889 15.8605 27.2434 15.8605 26.7228 16.4184L21 22.551L15.2772 16.4229C14.7566 15.865 13.9111 15.865 13.3905 16.4229C12.8698 16.9808 12.8698 17.8869 13.3905 18.4448L20.0545 25.586L20.0587 25.5816Z" fill="currentColor"/></svg>',
+  chevronUp: '<svg class="icon" width="20" height="20" viewBox="9 9 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20.0587 17.3766C20.5793 16.8745 21.4248 16.8745 21.9455 17.3766L28.6095 23.8037C29.1302 24.3058 29.1302 25.1213 28.6095 25.6234C28.0889 26.1255 27.2434 26.1255 26.7228 25.6234L21 20.1041L15.2772 25.6194C14.7566 26.1215 13.9111 26.1215 13.3905 25.6194C12.8698 25.1173 12.8698 24.3018 13.3905 23.7997L20.0545 17.3726L20.0587 17.3766Z" fill="currentColor"/></svg>',
+  arrowLeft: '<svg class="icon" width="20" height="20" viewBox="9 9 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.6544 20.7352C12.2314 21.1582 12.2314 21.8452 12.6544 22.2682L18.069 27.6827C18.492 28.1058 19.179 28.1058 19.602 27.6827C20.025 27.2597 20.025 26.5728 19.602 26.1497L16.0351 22.5829H28.58C29.1789 22.5829 29.6629 22.099 29.6629 21.5C29.6629 20.901 29.1789 20.4171 28.58 20.4171H16.0351L19.602 16.8503C20.025 16.4272 20.025 15.7403 19.602 15.3173C19.179 14.8942 18.492 14.8942 18.069 15.3173L12.6544 20.7318V20.7352Z" fill="currentColor"/></svg>',
+  chevronRight: '<svg class="icon" width="20" height="20" viewBox="9 9 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M25.5816 20.0587C26.1395 20.5793 26.1395 21.4248 25.5816 21.9455L18.4403 28.6095C17.8824 29.1302 16.9763 29.1302 16.4184 28.6095C15.8605 28.0889 15.8605 27.2434 16.4184 26.7228L22.551 21L16.4229 15.2772C15.865 14.7566 15.865 13.9111 16.4229 13.3905C16.9808 12.8698 17.8869 12.8698 18.4448 13.3905L25.586 20.0545L25.5816 20.0587Z" fill="currentColor"/></svg>',
+  close: '<svg class="icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.99258 3.34531C4.53703 2.88976 3.79721 2.88976 3.34166 3.34531C2.88611 3.80086 2.88611 4.54067 3.34166 4.99622L8.34908 10L3.34531 15.0074C2.88976 15.463 2.88976 16.2028 3.34531 16.6583C3.80086 17.1139 4.54067 17.1139 4.99623 16.6583L10 11.6509L15.0074 16.6547C15.463 17.1102 16.2028 17.1102 16.6583 16.6547C17.1139 16.1991 17.1139 15.4593 16.6583 15.0038L11.6509 10L16.6547 4.99258C17.1102 4.53703 17.1102 3.79721 16.6547 3.34166C16.1991 2.88611 15.4593 2.88611 15.0038 3.34166L10 8.34908L4.99258 3.34531Z" fill="currentColor"/></svg>',
+  warning: '<svg class="icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.0006 3C10.46 3 10.8818 3.25313 11.1006 3.65625L17.8506 16.1562C18.06 16.5437 18.0506 17.0125 17.8256 17.3906C17.6006 17.7688 17.1912 18 16.7506 18H3.25058C2.80996 18 2.40058 17.7688 2.17558 17.3906C1.95058 17.0125 1.94121 16.5437 2.15058 16.1562L8.90058 3.65625C9.11933 3.25313 9.54121 3 10.0006 3ZM10.0006 14C9.73537 14 9.48101 14.1054 9.29348 14.2929C9.10594 14.4804 9.00058 14.7348 9.00058 15C9.00058 15.2652 9.10594 15.5196 9.29348 15.7071C9.48101 15.8946 9.73537 16 10.0006 16C10.2658 16 10.5202 15.8946 10.7077 15.7071C10.8952 15.5196 11.0006 15.2652 11.0006 15C11.0006 14.7348 10.8952 14.4804 10.7077 14.2929C10.5202 14.1054 10.2658 14 10.0006 14ZM10.0006 8C9.43183 8 8.97871 8.48438 9.01933 9.05312L9.25058 12.3031C9.27871 12.6938 9.60683 13 9.99746 13C10.3912 13 10.7162 12.6969 10.7443 12.3031L10.9756 9.05312C11.0162 8.48438 10.5662 8 9.99433 8H10.0006Z" fill="currentColor"/></svg>',
+  lock: '<svg class="lock-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Lukittu" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="8.5" width="13" height="8.5" rx="1.5"></rect><path d="M6.75 8.5V6.25a3.25 3.25 0 0 1 6.5 0V8.5"></path></svg>',
+  check: '<svg class="check-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.704 5.29a1 1 0 0 1 0 1.415l-7.5 7.5a1 1 0 0 1-1.415 0l-3.5-3.5a1 1 0 1 1 1.415-1.414l2.792 2.793 6.793-6.793a1 1 0 0 1 1.415 0z" fill="currentColor"/></svg>'
+};
+
+/* ---------- Photos ----------
+   Photos are files in images/ (optimized JPEGs). PHOTOS maps each key to one or
+   more image paths; a key mapped to an array renders as a gallery. Tasks
+   reference photos by key (e.g. photos: ["p07"]); the renderer resolves each key
+   through PHOTOS (PHOTOS[ref] || ref), so a raw path or URL also works. */
+
+const PHOTOS = {
+  // Ylämökki — boileri: virtakytkin → vipu (on/ei)
+  p01: ["../images/ylamokki_boileri_virta.jpg", "../images/ylamokki_boileri_virta_vipu.jpg"],
+  // Saunamökki — boilerin sähköt: sulaketaulu → stotsit
+  p02: ["../images/saunamokki_sulaketaulu.jpg", "../images/saunamokki_sulakketaulu_stotsit.jpg"],
+  // Saunamökki — ylipaineventtiili: boileri → venttiili
+  p03: ["../images/saunamokki_boileri.jpg", "../images/saunamokki_boileri_ylipaineventtiili.jpg"],
+  // Saunamökki — korvausilmaventtiili / ilmausruuvi: boileri → ilmaruuvi
+  p04: ["../images/saunamokki_boileri.jpg", "../images/saunamokki_boileri_ilmaruuvi.jpg"],
+  // Ylämökki — boilerin ylipaineventtiili: venttiilit → ylipaineventtiili
+  p05: ["../images/ylamokki_boileri_venttiilit.jpg", "../images/ylamokki_boileri_ylipaineventtiili.jpg"],
+  // Ylämökki — nippa talon alla
+  p06: ["../images/ylamokki_kellari_nippa.jpg"],
+  // Ylämökki — päävesiletku talon alla
+  p07: ["../images/ylamokki_kellari_paavesiletku.jpg"],
+  // Saunamökki — vesimittarin sulut penkin alla
+  p08: ["../images/saunamokki_vesitukki_sulut.jpg"],
+  // Saunamökki — pakkasvahdit (vesitukki penkin alla)
+  p09: ["../images/saunamokki_vesitukki.jpg"]
+};
+
+/* Alt text per image (Finnish descriptions derived from the photo names), used on
+   the fullscreen image. Keyed by path, so images reused across tasks map once. */
+const ALT = {
+  "../images/ylamokki_boileri_virta.jpg": "Ylämökin boileri — virtakytkin",
+  "../images/ylamokki_boileri_virta_vipu.jpg": "Ylämökin boileri — virtavipu (on/ei)",
+  "../images/saunamokki_sulaketaulu.jpg": "Saunamökki — sulaketaulu",
+  "../images/saunamokki_sulakketaulu_stotsit.jpg": "Saunamökki — sulaketaulu ja boilerin stotsit",
+  "../images/saunamokki_boileri.jpg": "Saunamökki — boileri",
+  "../images/saunamokki_boileri_ylipaineventtiili.jpg": "Saunamökin boileri — ylipaineventtiili",
+  "../images/saunamokki_boileri_ilmaruuvi.jpg": "Saunamökin boileri — ilmausruuvi",
+  "../images/ylamokki_boileri_venttiilit.jpg": "Ylämökin boileri — venttiilit",
+  "../images/ylamokki_boileri_ylipaineventtiili.jpg": "Ylämökin boileri — ylipaineventtiili",
+  "../images/ylamokki_kellari_nippa.jpg": "Ylämökki — nippa talon alla",
+  "../images/ylamokki_kellari_paavesiletku.jpg": "Ylämökki — päävesiletku talon alla",
+  "../images/saunamokki_vesitukki_sulut.jpg": "Saunamökki — vesimittarin sulut penkin alla",
+  "../images/saunamokki_vesitukki.jpg": "Saunamökki — vesitukki penkin alla"
+};
+
+/* ---------- Data ----------
+   Content transcribed from Processes.md. Each task's `photos` array holds photo
+   keys (see PHOTOS above); the thumbnail grid + fullscreen viewer are wired up. */
+
+const processes = {
+  arrive: {
+    title: "Kesä — Palaaminen",
+    description: "Mökille saapuminen kesällä.",
+    tools: [
+      { cabin: "Saunamökki", items: "iso lenkkiavain (naulakossa)" }
+    ],
+    groups: [
+      {
+        label: "Vaihe 1: Ranta ja saunamökki",
+        name: "",
+        tasks: [
+          { title: "Avaa vesiputki rannasta", detail: "Mene rantaan ja avaa siellä oleva vesisulku.", tools: "iso lenkkiavain", photos: [] },
+          { title: "Avaa vesimittarin pääsulku — saunan penkin alla", detail: "Ennen vesimittaria oleva sulku — musta pystyputki, jossa sinistä. Käännä vastapäivään auki.", photos: ["p08"] },
+          { title: "Tarkista: tuleeko vesi normaalisti", detail: "Avaa hana ja varmista virtaus.", photos: [] },
+          { title: "Kytke saunamökin boileri päälle", detail: "Laita stotsit ylä-asentoon. Anna lämmetä ennen käyttöä.", warning: "Kytke virta vasta kun olet varmistanut että vesi tulee (edellinen askel). Kuiva boileri ei saa olla virrallinen.", photos: ["p02"] }
+        ]
+      },
+      {
+        label: "Vaihe 2: Ylämökki",
+        name: "",
+        tasks: [
+          { title: "Kytke ylämökin boileri päälle", detail: "Käännä vipu 'ei'-asennosta 'on'-asentoon. Lämpenee noin tunnissa.", warning: "Kytke virta vasta kun olet varmistanut että vesi tulee. Kuiva boileri ei saa olla virrallinen.", photos: ["p01"] }
+        ]
+      }
+    ]
+  },
+
+  leave: {
+    title: "Kesä — Poistuminen",
+    description: "Mökiltä lähtö viikoksi tai pidemmäksi.",
+    tools: [
+      { cabin: "Saunamökki", items: "iso lenkkiavain (naulakossa)" }
+    ],
+    groups: [
+      {
+        label: "Vaihe 1: Ylämökki",
+        name: "",
+        tasks: [
+          { title: "Sammuta ylämökin boileri", detail: "Käännä vipu 'on'-asennosta 'ei'-asentoon.", photos: ["p01"] },
+          { title: "Irrota televisio pistokkeesta", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 2: Saunamökki ja ranta",
+        name: "",
+        tasks: [
+          { title: "Sammuta saunamökin boileri", detail: "Laske stotsit ala-asentoon.", photos: ["p02"] },
+          { title: "Sulje vesimittarin pääsulku — saunan penkin alla", detail: "Ennen vesimittaria oleva sulku — musta pystyputki, jossa sinistä. Käännä myötäpäivään kiinni. Tämä katkaisee vedet sekä saunamökiltä että ylämökiltä.", photos: ["p08"] },
+          { title: "Sulje vesiputki rannasta", detail: "Mene rantaan ja sulje siellä oleva vesisulku.", tools: "iso lenkkiavain", photos: [] },
+          { title: "Tarkista: hanoista ei tule vettä", detail: "Avaa hana ja varmista, ettei vettä enää tule. Sulje hana.", photos: [] },
+          { title: "Kytke turvakamerat päälle", photos: [] }
+        ]
+      }
+    ]
+  },
+
+  opening: {
+    title: "Kevät — Kauden aloitus",
+    description: "Keväällä vedet päälle ja mökki käyttökuntoon.",
+    tools: [
+      { cabin: "Saunamökki", items: "iso lenkkiavain (naulakossa) + pieni ruuvimeisseli (venttiilin vieressä)" },
+      { cabin: "Ylämökki", items: "otsalamppu + pihdit (talon alla)" }
+    ],
+    groups: [
+      {
+        label: "Vaihe 1: Ylämökki",
+        name: "Putkiston käyttöönotto",
+        tasks: [
+          { title: "Kiinnitä päävesiletku takaisin talon alla", detail: "Avaa keittiön lattialuukku ja mene talon alle. Kiinnitä syksyllä irrotettu letku takaisin päähaaraan.", tools: "otsalamppu + pihdit", photos: ["p07"] },
+          { title: "Sulje nippa talon alla", detail: "Vedä nipukallinen sulku ulos harmaasta putkesta. Käännä pihdeillä nipukka 90° poikittain letkuun nähden (= kiinni). Työnnä sulku takaisin putkeen.", tools: "pihdit", photos: ["p06"] },
+          { title: "Sulje ylämökin boilerin ylipaineventtiili", detail: "Boileri on keittiössä. Kierrä punaista namiskaa kunnes se naksahtaa normaaliin kiinni-asentoonsa.", photos: ["p05"] },
+          { title: "Sulje ylämökin keittiön ja suihkun hanat", warning: "Tärkeää tehdä ennen sulkujen avaamista — muuten vesi tulee suoraan auki olevista hanoista.", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 2: Saunamökki",
+        name: "Venttiilit kiinni",
+        tasks: [
+          { title: "Sulje korvausilmaventtiili (ilmausruuvi)", detail: "Kierrä ruuvi varovasti kiinni. Ruuvimeisseli löytyy venttiilin vierestä.", tools: "ruuvimeisseli", warning: "Älä kiristä liikaa.", photos: ["p04"] },
+          { title: "Sulje saunamökin ylipaineventtiili", detail: "Kierrä oikeanpuoleisin hana kiinni-asentoon — naksahtaa normaaliin asentoonsa.", photos: ["p03"] },
+          { title: "Sulje hanat saunamökin saunasta ja tuvasta", detail: "Sulje kaikki hanat jotka jätettiin auki syksyllä.", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 3: Saunamökki",
+        name: "Sulut auki — vedet päälle",
+        tasks: [
+          { title: "Avaa saunarannan pääsulku", detail: "Mene rantaan ja avaa ulkona oleva pääsulku.", tools: "iso lenkkiavain", photos: [] },
+          { title: "Avaa sulut saunan penkin alla", detail: "Penkin alla on vesimittari ja sen molemmin puolin sulut. Avaa vesimittarin pääsulku (ennen mittaria) sekä ylämökin erillinen sulku. Molemmat käännetään putken suuntaisesti (= auki).", photos: ["p08"] }
+        ]
+      },
+      {
+        label: "Vaihe 4: Saunamökki",
+        name: "Boileri — Täyttö ja käynnistys",
+        tasks: [
+          { title: "Tarkista: täyttyykö boileri ja tuleeko vesi normaalisti", detail: "Avaa hana ja tarkista virtaus. Anna boilerin täyttyä kokonaan.", photos: [] },
+          { title: "Kytke saunamökin boileri päälle", detail: "Laita stotsit ylä-asentoon.", warning: "Kytke virta vasta kun vesi on tullut normaalisti (edellinen askel). Kuiva boileri ei saa olla virrallinen.", photos: ["p02"] }
+        ]
+      },
+      {
+        label: "Vaihe 5: Ylämökki",
+        name: "Vedet päälle ja boileri",
+        tasks: [
+          { title: "Tarkista putkiliitokset vuotojen varalta", detail: "Silmämääräinen tarkistus: lavuaarien alta, pesukoneen taakse, WC-säiliön ympärille.", photos: [] },
+          { title: "Kytke ylämökin boileri päälle", detail: "Käännä vipu 'ei'-asennosta 'on'-asentoon.", warning: "Kytke virta vasta kun olet tarkastanut putkiliitokset ja vesi tulee normaalisti. Kuiva boileri ei saa olla virrallinen.", photos: ["p01"] },
+          { title: "Tarkista, tuleeko joka hanasta vesi normaalisti", detail: "Avaa hanat yksi kerrallaan ja huuhtele ilma pois putkistosta.", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 6: Saunamökki",
+        name: "Pakkasvahdit ja mittarilukema",
+        tasks: [
+          { title: "Tarkista pakkasvahdit", detail: "Penkin alla oikeassa laidassa. Muista kytkeä takaisin syksyllä.", warning: "Muista kytkeä takaisin ennen kauden lopetusta.", photos: ["p09"] },
+          { title: "Ota muistiin mittarilukema", detail: "Vesimittari on saunan penkin alla. Vertaa syksyn lukemaan.", photos: [] }
+        ]
+      }
+    ]
+  },
+
+  closing: {
+    title: "Syksy — Kauden lopetus",
+    description: "Syksyllä vedet pois ja talvikuntoon.",
+    tools: [
+      { cabin: "Saunamökki", items: "iso lenkkiavain (naulakossa) + pieni ruuvimeisseli (venttiilin vieressä) + kynä mittarilukemaa varten" },
+      { cabin: "Ylämökki", items: "otsalamppu + pihdit (talon alla)" }
+    ],
+    groups: [
+      {
+        label: "Vaihe 1: Saunamökki",
+        name: "Aloitus",
+        tasks: [
+          { title: "Käännä rannasta vesiputki kiinni", tools: "iso lenkkiavain", photos: [] },
+          { title: "Sulje vesimittarin pääsulku ja ylämökin sulku — penkin alla", detail: "Penkin alla: käännä vesimittarin pääsulku (ennen mittaria) kiinni — musta pystyputki, jossa sinistä, käännä myötäpäivään. Käännä myös ylämökin erillinen sulku kiinni. Molemmat poikittain putken suuntaan nähden.", photos: ["p08"] },
+          { title: "Tarkista: hanoista ei tule kylmää vettä", warning: "Jos vettä tulee edelleen, sulut eivät ole kunnolla kiinni.", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 2: Saunamökki",
+        name: "Boileri — Sammutus ja tyhjennys",
+        tasks: [
+          { title: "Sammuta saunamökin boileri", detail: "Laske stotsit ala-asentoon.", photos: ["p02"] },
+          { title: "Avaa saunamökin ylipaineventtiili", detail: "Oikeanpuoleisin hana — kiertyy ja naksahtaa auki. Vesi valuu talon nurkalle ulkopuolelle.", warning: "Saunamökin venttiili naksahtaa auki. Ylämökin venttiilissä ei ole sama naksahdus — siinä pitää varoa ettei kierrä liikaa takaisin kiinni.", photos: ["p03"] },
+          { title: "Avaa korvausilmaventtiili (ilmaruuvi)", detail: "Kierrä ruuvia hieman auki, jolloin vesi alkaa valua. Ruuvimeisseli löytyy venttiilin vierestä.", tools: "ruuvimeisseli", warning: "Ruuvista voi roiskua kuumaa vettä! Jos ruuvi irtoaa kokonaan, kierrä pyyhe venttiilin eteen suojaksi.", photos: ["p04"] },
+          { title: "Avaa hanat saunamökin saunasta ja tuvasta — keskilämpöön", detail: "Avaa kaikki hanat keskiasentoon, jotta boileri saa korvausilmaa.", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 3: Ylämökki",
+        name: "Boileri ja hanat",
+        tasks: [
+          { title: "Sammuta ylämökin boileri", detail: "Käännä vipu 'on'-asennosta 'ei'-asentoon.", warning: "Tästä eteenpäin ei enää saa käyttää vettä ylämökissä.", photos: ["p01"] },
+          { title: "Avaa ison mökin keittiön ja suihkun hanat keskilämmölle", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 4: Ylämökki",
+        name: "Putkiston tyhjennys",
+        tasks: [
+          { title: "Avaa nippa pihdeillä talon alla", detail: "Avaa keittiön lattialuukku ja mene talon alle. Vedä nipukallinen sulku ulos harmaasta putkesta, käännä pihdeillä nipukka 90° letkun suuntaisesti (= auki), ja työnnä sulku takaisin putkeen. Putki ohjaa veden talon perustuksen ulkopuolelle — ilman putkea vesi valuu talon alle.", tools: "otsalamppu + pihdit", photos: ["p06"] },
+          { title: "Irrota päävesiletku talon alla", detail: "Irrota letku pääletkusta. Vesi alkaa nyt valua nipan kautta putkea pitkin ulos.", photos: ["p07"] },
+          { title: "Avaa ylämökin boilerin ylipaineventtiili", detail: "Boileri on keittiössä. Boilerin alta pyöritä punaista namiskaa auki, mutta varoen: liikaa kääntämällä se naksahtaa takaisin kiinni.", warning: "Älä kierrä liikaa — venttiili naksahtaa helposti takaisin kiinni. Jos näin käy, kierrä uudelleen auki.", photos: ["p05"] },
+          { title: "Kuuntele: lorottaako vesi pois boilerista?", detail: "Boilerista ja lattian alta pitäisi kuulua veden virtausääni. Odota kunnes lakkaa.", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 5: Saunamökki",
+        name: "Pakkasvahdit ja mittarilukema",
+        tasks: [
+          { title: "Tarkista pakkasvahdit", detail: "Molemmat pakkasvahdit + putkivastus tulee olla jakorasiassa kiinni, ja jakorasia kytkettynä sulakkeiden vieressä olevaan töpseliin.", warning: "3 asiaa: molemmat pakkasvahdit + putkivastus.", photos: ["p09"] },
+          { title: "Ota muistiin mittarilukema", detail: "Vesimittari on saunan penkin alla.", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 6: Molemmat mökit",
+        name: "Viimeistely",
+        tasks: [
+          { title: "Sulje kaikki hanat kun boilerit ovat tyhjentyneet", detail: "Käy läpi kaikki avaamasi hanat. Sulje ne — seuraavalla kaudella on helpompi laittaa vedet päälle.", photos: [] }
+        ]
+      }
+    ]
+  },
+
+  winter_on: {
+    title: "Talvi — Vedet päälle",
+    description: "Talvivierailu — vedet saunamökille, ylämökki pysyy kuivana.",
+    tools: [
+      { cabin: "Saunamökki", items: "iso lenkkiavain (naulakossa) + pieni ruuvimeisseli (venttiilin vieressä)" }
+    ],
+    groups: [
+      {
+        label: "Vaihe 1: Saunamökki",
+        name: "Venttiilit kiinni",
+        tasks: [
+          { title: "Sulje korvausilmaventtiili (ilmausruuvi)", detail: "Kierrä ruuvi varovasti kiinni. Ruuvimeisseli löytyy venttiilin vierestä.", tools: "ruuvimeisseli", warning: "Älä kiristä liikaa.", photos: ["p04"] },
+          { title: "Sulje saunamökin ylipaineventtiili", detail: "Kierrä oikeanpuoleisin hana kiinni-asentoon — naksahtaa normaaliin asentoonsa.", photos: ["p03"] },
+          { title: "Sulje hanat saunamökin saunasta ja tuvasta", detail: "Sulje kaikki hanat jotka jätettiin auki edellisellä kerralla.", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 2: Saunamökki",
+        name: "Sulut auki — vedet päälle",
+        tasks: [
+          { title: "Avaa saunarannan pääsulku", detail: "Mene rantaan ja avaa ulkona oleva pääsulku.", tools: "iso lenkkiavain", photos: [] },
+          { title: "Avaa VAIN vesimittarin pääsulku — ylämökin sulku jää kiinni", detail: "Penkin alla: avaa vesimittarin pääsulku (ennen mittaria) — käännä putken suuntaiseksi. Ylämökin erillinen sulku jää kiinni-asentoon (poikittain).", warning: "Ylämökin sulkua EI avata — ylämökin putkistoa ei ole tyhjennetty talvikäyttöä varten ja se voi olla jäässä.", photos: ["p08"] },
+          { title: "Tarkista pakkasvahdit", detail: "Penkin alla oikeassa laidassa. Jos pakkasriski: varmista että kytketty. Jos ei pakkasriskiä: voit irrottaa pistokkeesta.", photos: ["p09"] }
+        ]
+      },
+      {
+        label: "Vaihe 3: Saunamökki",
+        name: "Boileri — Täyttö ja käynnistys",
+        tasks: [
+          { title: "Tarkista: täyttyykö boileri ja tuleeko vesi normaalisti", detail: "Avaa hana ja tarkista virtaus. Anna boilerin täyttyä kokonaan.", photos: [] },
+          { title: "Kytke saunamökin boileri päälle", detail: "Laita stotsit ylä-asentoon.", warning: "Kytke virta vasta kun vesi on tullut normaalisti (edellinen askel). Kuiva boileri ei saa olla virrallinen.", photos: ["p02"] }
+        ]
+      }
+    ]
+  },
+
+  winter_off: {
+    title: "Talvi — Vedet pois",
+    description: "Talvivierailun lopetus — vedet pois saunamökiltä.",
+    tools: [
+      { cabin: "Saunamökki", items: "iso lenkkiavain (naulakossa) + pieni ruuvimeisseli (venttiilin vieressä) + kynä mittarilukemaa varten" }
+    ],
+    groups: [
+      {
+        label: "Vaihe 1: Saunamökki",
+        name: "Sammutus ja sulku",
+        tasks: [
+          { title: "Käännä rannasta vesiputki kiinni", detail: "Mene rantaan ja sulje ulkona oleva pääsulku.", tools: "iso lenkkiavain", photos: [] },
+          { title: "Sulje vesimittarin pääsulku — penkin alla", detail: "Penkin alla: käännä vesimittarin pääsulku kiinni — musta pystyputki, käännä myötäpäivään. Tarkista samalla että ylämökin sulku on kiinni (poikittain).", warning: "Ylämökin sulun tulee olla kiinni — tarkista samalla.", photos: ["p08"] },
+          { title: "Tarkista: hanoista ei tule kylmää vettä", warning: "Jos vettä tulee edelleen, sulut eivät ole kunnolla kiinni.", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 2: Saunamökki",
+        name: "Boileri — Sammutus ja tyhjennys",
+        tasks: [
+          { title: "Sammuta saunamökin boileri", detail: "Laske stotsit ala-asentoon.", photos: ["p02"] },
+          { title: "Avaa saunamökin ylipaineventtiili", detail: "Oikeanpuoleisin hana — kiertyy ja naksahtaa auki. Vesi valuu talon nurkalle ulkopuolelle.", warning: "Saunamökin venttiili naksahtaa auki.", photos: ["p03"] },
+          { title: "Avaa korvausilmaventtiili (ilmaruuvi)", detail: "Kierrä ruuvia hieman auki, jolloin vesi alkaa valua. Ruuvimeisseli löytyy venttiilin vierestä.", tools: "ruuvimeisseli", warning: "Ruuvista voi roiskua kuumaa vettä! Jos ruuvi irtoaa kokonaan, kierrä pyyhe venttiilin eteen suojaksi.", photos: ["p04"] },
+          { title: "Avaa hanat saunamökin saunasta ja tuvasta — keskilämpöön", detail: "Avaa kaikki hanat keskiasentoon, jotta boileri saa korvausilmaa.", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 3: Saunamökki",
+        name: "Pakkasvahdit ja mittarilukema",
+        tasks: [
+          { title: "Tarkista pakkasvahdit", detail: "Molemmat pakkasvahdit + putkivastus tulee olla jakorasiassa kiinni, ja jakorasia kytkettynä sulakkeiden vieressä olevaan töpseliin. Jos pakkasriski: kytkettynä. Jos ei pakkasriskiä: voit irrottaa.", warning: "3 asiaa: molemmat pakkasvahdit + putkivastus.", photos: ["p09"] },
+          { title: "Ota muistiin mittarilukema", detail: "Vesimittari on saunan penkin alla.", photos: [] }
+        ]
+      },
+      {
+        label: "Vaihe 4: Saunamökki",
+        name: "Viimeistely",
+        tasks: [
+          { title: "Sulje kaikki hanat kun boileri on tyhjentynyt", detail: "Käy läpi kaikki avaamasi hanat. Sulje ne.", photos: [] }
+        ]
+      }
+    ]
+  }
+};
+
+/* ---------- Rendering ---------- */
+
+const homeView = document.getElementById("home-view");
+const projectView = document.getElementById("project-view");
+const processList = document.getElementById("process-list");
+const pageTitle = document.getElementById("page-title");
+const backBtn = document.getElementById("back-btn");
+const projectDescription = document.getElementById("project-description");
+const projectTools = document.getElementById("project-tools");
+const stepGroups = document.getElementById("step-groups");
+const lightbox = document.getElementById("lightbox");
+const lightboxImg = document.getElementById("lightbox-img");
+const lightboxClose = document.getElementById("lightbox-close");
+const progress = document.getElementById("progress");
+const progressCount = document.getElementById("progress-count");
+const progressFill = document.getElementById("progress-fill");
+const completeModal = document.getElementById("complete-modal");
+const completeClose = document.getElementById("complete-close");
+
+backBtn.innerHTML = icons.arrowLeft;
+lightboxClose.innerHTML = icons.close;
+document.getElementById("complete-modal-badge").innerHTML = icons.check;
+
+/* ---------- Progress (linear step flow) ----------
+   Following the Neo-Brutalist design system: a process is a linear sequence.
+   State is a single "steps completed" count per process, held only in memory
+   (`progressState`) — it is intentionally NOT persisted, so it resets whenever the
+   app is closed or reloaded; there is no manual reset. From the count each step
+   derives a status: index < done → done, index === done → current, index > done →
+   locked. You advance one step at a time with "Merkitse valmiiksi". */
+
+const progressState = {}; // { [processId]: <doneCount> } — in-memory, cleared on reload
+let currentProcessId = null;
+
+function processTotal(process) {
+  return process.groups.reduce((sum, g) => sum + g.tasks.length, 0);
+}
+/* Completed-step count for a process, clamped to a valid range. */
+function getDone(id, process) {
+  const raw = progressState[id];
+  const total = process ? processTotal(process) : Infinity;
+  if (typeof raw !== "number" || raw < 0) return 0;
+  return Math.min(raw, total);
+}
+function setDone(id, n) {
+  if (n > 0) progressState[id] = n; else delete progressState[id];
+}
+
+function renderHome() {
+  processList.innerHTML = Object.entries(processes).map(([id, process]) => {
+    const total = processTotal(process);
+    const done = getDone(id, process);
+    const complete = total > 0 && done === total;
+    return `
+    <button class="card-project" data-process="${id}">
+      <span class="card-project__title">${process.title}</span>
+      <span class="card-project__count${complete ? " is-complete" : ""}">${done}/${total}</span>
+      ${icons.chevronRight}
+    </button>
+  `;
+  }).join("");
+}
+
+/* One step card. `status` is "done" | "current" | "locked".
+   Done + current show their body; locked shows only the title row (dimmed).
+   The current step carries the flow controls (back + mark complete). */
+function renderTask(task, num, total, status) {
+  const hasPhotos = task.photos && task.photos.length > 0;
+  const showBody = status === "done" || status === "current";
+  /* The tag is no longer shown for done/current — the badge and the open body
+     already say which is which — but it stays in the DOM for screen readers.
+     Locked steps show a padlock instead of the word. */
+  const tagText = status === "done" ? "Valmis" : status === "current" ? "Kesken" : "Lukittu";
+  const tag = status === "locked"
+    ? `<span class="card-task__tag">${icons.lock}</span>`
+    : `<span class="card-task__tag sr-only">${tagText}</span>`;
+  const rewindable = status === "done";
+  const headTag = rewindable ? "button" : "div";
+  const headAttrs = rewindable
+    ? ` type="button" data-rewind="${num}" title="Palaa tähän vaiheeseen"`
+    : "";
+
+  const body = showBody ? `
+      <div class="card-task__body">
+        ${task.detail ? `
+          <div>
+            <p class="card-task__section-label">Ohjeet</p>
+            <p class="card-task__section-text">${task.detail}</p>
+          </div>
+        ` : ""}
+        ${task.tools ? `
+          <div>
+            <p class="card-task__section-label">Työkalut</p>
+            <p class="card-task__section-text">${task.tools}</p>
+          </div>
+        ` : ""}
+        ${hasPhotos ? `
+          <div>
+            <p class="card-task__section-label">Liitteet</p>
+            <div class="attachments-grid">
+              ${task.photos.flatMap(ref => {
+                const val = PHOTOS[ref] || ref;
+                return Array.isArray(val) ? val : [val];
+              }).map((src, i) => `
+                <button class="attachment-thumb" data-photo="${src}" aria-label="Avaa kuva ${i + 1}">
+                  <img src="${src}" alt="${ALT[src] || ""}" loading="lazy">
+                </button>`).join("")}
+            </div>
+          </div>
+        ` : ""}
+        ${task.warning ? `
+          <div class="alert-box">
+            ${icons.warning}
+            <div>
+              <p class="alert-box__title">Huomio</p>
+              <p class="alert-box__text">${task.warning}</p>
+            </div>
+          </div>
+        ` : ""}
+        ${status === "current" ? `
+          <div class="step-actions">
+            <button type="button" class="btn-complete" data-complete>Merkitse valmiiksi</button>
+          </div>
+        ` : ""}
+      </div>` : "";
+
+  return `
+    <div class="card-task is-${status}" data-step="${num}">
+      <${headTag} class="card-task__head"${headAttrs}>
+        <span class="task-badge">
+          <span class="task-badge__num">${num}</span>
+          ${icons.check}
+        </span>
+        <span class="card-task__titlerow">
+          <span class="card-task__title">${task.title}</span>
+          ${tag}
+        </span>
+      </${headTag}>
+      ${body}
+    </div>
+  `;
+}
+
+function renderProject(id) {
+  const process = processes[id];
+  const total = processTotal(process);
+  const done = getDone(id, process);
+  projectDescription.textContent = process.description;
+  const hasTools = process.tools && process.tools.length > 0;
+  projectTools.innerHTML = hasTools ? `
+    <p class="page-tools__label">Tarvittavat työkalut</p>
+    ${process.tools.map(t => `<p class="page-tools__row">${t.cabin}: ${t.items}.</p>`).join("")}
+  ` : "";
+  projectTools.hidden = !hasTools;
+
+  let num = 0;
+  stepGroups.innerHTML = process.groups.map(group => `
+    <div class="step-group">
+      <div class="step-group__header">
+        <h2 class="step-group__label">${group.label}</h2>
+        ${group.name ? `<p class="step-group__name">${group.name}</p>` : ""}
+      </div>
+      <div class="task-list">
+        ${group.tasks.map(task => {
+          num++;
+          const status = num - 1 < done ? "done" : (num - 1 === done ? "current" : "locked");
+          return renderTask(task, num, total, status);
+        }).join("")}
+      </div>
+    </div>
+  `).join("");
+
+  progressCount.textContent = done + "/" + total;
+  progressFill.style.width = total ? (done / total * 100) + "%" : "0%";
+  progress.classList.toggle("is-complete", total > 0 && done === total);
+}
+
+/* Move the completed-step count by delta (advance or step back) and re-render,
+   keeping the (new) current step in view. */
+function stepBy(delta) {
+  if (!currentProcessId) return;
+  const process = processes[currentProcessId];
+  const total = processTotal(process);
+  const next = Math.min(Math.max(getDone(currentProcessId, process) + delta, 0), total);
+  setDone(currentProcessId, next);
+  renderProject(currentProcessId);
+  if (delta > 0 && total > 0 && next === total) {
+    openCompleteModal();
+  } else {
+    scrollToCurrent();
+  }
+}
+
+/* Completion modal — shown when the final step is marked done. Closing it resets
+   the process back to the start (progress is a one-shot run, not a saved record).
+   Focus moves into the modal on open and returns to the step list on close; while
+   open, focus is kept on the close button (single-control focus trap). */
+function openCompleteModal() {
+  completeModal.hidden = false;
+  completeClose.focus();
+}
+function closeCompleteModal() {
+  completeModal.hidden = true;
+  if (currentProcessId) {
+    setDone(currentProcessId, 0);
+    renderProject(currentProcessId);
+    projectView.scrollTop = 0;
+    window.scrollTo(0, 0);
+    // Return focus to something real in the (re-rendered) list.
+    const next = stepGroups.querySelector("[data-complete]") || backBtn;
+    if (next) next.focus();
+  }
+}
+function setDoneAndRender(n) {
+  if (!currentProcessId) return;
+  const total = processTotal(processes[currentProcessId]);
+  setDone(currentProcessId, Math.min(Math.max(n, 0), total));
+  renderProject(currentProcessId);
+  scrollToCurrent();
+}
+function scrollToCurrent() {
+  const cur = stepGroups.querySelector(".card-task.is-current");
+  if (!cur) return;
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  cur.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+}
+
+function showHome() {
+  currentProcessId = null;
+  renderHome(); // refresh the per-process done/total counts
+  homeView.hidden = false;
+  projectView.hidden = true;
+  backBtn.hidden = true;
+  pageTitle.textContent = "Mökin vedet";
+}
+
+function showProject(id) {
+  currentProcessId = id;
+  renderProject(id);
+  homeView.hidden = true;
+  projectView.hidden = false;
+  backBtn.hidden = false;
+  pageTitle.textContent = processes[id].title;
+  projectView.scrollTop = 0;
+  window.scrollTo(0, 0);
+}
+
+function openLightbox(src) {
+  lightboxImg.src = src;
+  lightboxImg.alt = ALT[src] || "";
+  lightbox.hidden = false;
+}
+
+function closeLightbox() {
+  lightbox.hidden = true;
+  lightboxImg.src = "";
+  lightboxImg.alt = "";
+}
+
+/* ---------- Events ---------- */
+
+processList.addEventListener("click", (e) => {
+  const card = e.target.closest(".card-project");
+  if (card) showProject(card.dataset.process);
+});
+
+backBtn.addEventListener("click", showHome);
+
+stepGroups.addEventListener("click", (e) => {
+  if (e.target.closest("[data-complete]")) { stepBy(1); return; }
+  const rewind = e.target.closest("[data-rewind]");
+  if (rewind) { setDoneAndRender(Number(rewind.dataset.rewind) - 1); return; }
+  const thumb = e.target.closest(".attachment-thumb");
+  if (thumb) openLightbox(thumb.dataset.photo);
+});
+
+lightboxClose.addEventListener("click", closeLightbox);
+lightbox.addEventListener("click", (e) => {
+  if (e.target === lightbox) closeLightbox();
+});
+
+completeClose.addEventListener("click", closeCompleteModal);
+completeModal.addEventListener("click", (e) => {
+  if (e.target === completeModal) closeCompleteModal();
+});
+
+document.addEventListener("keydown", (e) => {
+  // While the completion modal is open, keep focus on its only control.
+  if (!completeModal.hidden && e.key === "Tab") {
+    e.preventDefault();
+    completeClose.focus();
+    return;
+  }
+  if (e.key !== "Escape") return;
+  if (!completeModal.hidden) closeCompleteModal();
+  else if (!lightbox.hidden) closeLightbox();
+});
+
+renderHome();
+showHome();
+</script>
+</body>
+</html>
