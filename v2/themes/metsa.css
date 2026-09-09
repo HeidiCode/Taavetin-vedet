@@ -440,7 +440,7 @@ main[hidden] { display: none; }
   gap: var(--space-12);
   align-items: flex-start;
   width: 100%;
-  padding: 15px var(--space-16);
+  padding: 16px var(--space-16);
   background: transparent;
   border: none;
   text-align: left;
@@ -503,19 +503,20 @@ button.card-task__head { cursor: pointer; }
 .card-task__tag {
   flex: 0 0 auto;
   font-size: var(--label-size);
-  font-weight: 800;
+  font-weight: var(--title-weight);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 /* Only the locked tag carries an svg, so this reaches nothing else. */
-.card-task__tag svg { width: 28px; height: 28px; display: block; color: var(--lock); }
+.card-task__tag svg { width: 28px; height: 28px; display: block; color: var(--lock);
+  margin-top: 2px; }
 
-/* The padlock sits in the opposite corner from the number badge: badge top
-   left, padlock bottom right. The row is centred by default, so the locked
-   card opts out. Matters most when a long title wraps to two lines. */
-.card-task.is-locked .card-task__tag { align-self: flex-end; }
+/* The padlock sits in the top right, level with the number badge. The row is
+   centred by default, so the locked card opts out. Matters most when a long
+   title wraps to two lines. */
+.card-task.is-locked .card-task__tag { align-self: flex-start; }
 
 /* Body: indented under the title, shown for done + current steps. */
 .card-task__body {
