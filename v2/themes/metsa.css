@@ -25,10 +25,10 @@
      drop shadow, the progress fill, the bar across a photo. `text` is what you
      read. They start from near-black; lightening `ink` alone softens the whole
      frame without touching legibility. */
-  --ink: #0a0b14;
+  --ink: #0f111e;
   --text: #0f111e;
   --muted: #4a5a36;         /* locked step's title, number and padlock */
-  --locked-line: #467a26;   /* the dashed border of a locked card */
+  --locked-line: #4a5a36;   /* the dashed border of a locked card */
 
   /* --- accent ---------------------------------------------------------
      `accent` is a FILL and always carries dark text on top, so a bright value
@@ -49,12 +49,12 @@
 
   --heading-size: 25px;
   --heading-weight: 600;
-  --title-size: 18px;         /* task card titles */
+  --title-size: 19px;         /* task card titles */
   --title-weight: 600;
   --title-weight-current: 600;
   --body-size: 17px;
   --label-size: 14px;         /* VAIHE 1, OHJEET, TYÖKALUT, the Huomio tab */
-  --btn-size: 18px;
+  --btn-size: 19px;
   --btn-weight: 600;
 
   /* --- shape ----------------------------------------------------------- */
@@ -132,7 +132,7 @@ a:hover { color: var(--text); }
   margin: 0;
   padding: 0 56px;
   font-family: var(--font-head);
-  font-size: 20px;
+  font-size: 25px;
   font-weight: var(--heading-weight);
   letter-spacing: -0.01em;
   color: var(--text);
@@ -185,7 +185,7 @@ main[hidden] { display: none; }
 .card-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--space-16);
 }
 
 .card-project {
@@ -639,7 +639,7 @@ button.card-task__head { cursor: pointer; }
   border: var(--border) solid var(--ink);
   border-radius: var(--radius);
   box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
-  font-family: var(--font-body);
+  font-family: var(--font-head);
   font-size: var(--btn-size);
   font-weight: var(--btn-weight);
   cursor: pointer;
@@ -726,7 +726,7 @@ button.card-task__head { cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent);
+  background: var(--locked-bg);
   color: var(--text);
   border: var(--border) solid var(--ink);
   border-radius: var(--radius-sm);
